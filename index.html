@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Replay Show - JKT48 Theater Records</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --primary: #e11d48;
+            --secondary: #fb7185;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        #starCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(244, 63, 94, 0.4);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(244, 63, 94, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fb7185, #e11d48);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.9);
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active { display: flex; }
+
+        .shake { animation: shake 0.5s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .guide-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+            width: 3.5rem;
+            height: 3.5rem;
+            background: rgba(225, 29, 72, 0.15);
+            border: 1px solid rgba(225, 29, 72, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .guide-btn:hover {
+            background: #e11d48;
+            transform: scale(1.1) rotate(15deg);
+            border-color: #fb7185;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <canvas id="starCanvas"></canvas>
+
+    <!-- Ikon Panduan -->
+    <button onclick="toggleGuide()" class="guide-btn group shadow-lg" title="Lihat Panduan">
+        <i class="fas fa-question text-xl text-white/80 group-hover:text-white group-hover:scale-110 transition-all"></i>
+    </button>
+
+    <header class="pt-16 pb-10 text-center relative">
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-2 tracking-tight">Replay Show</h1>
+        <p class="text-slate-400 font-medium uppercase tracking-widest text-sm">Theater JKT48 Archives</p>
+        <div class="flex items-center justify-center gap-4 mt-4 text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+            <span>©Realtime48</span>
+            <span class="w-1 h-1 bg-rose-500 rounded-full"></span>
+            <span>©UcilStream</span>
+        </div>
+    </header>
+
+    <section class="max-w-4xl mx-auto px-4 mb-12">
+        <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 justify-between border-rose-500/20">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-crown text-rose-500 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-lg text-white">Akses Master</h2>
+                    <p class="text-xs text-slate-400">👑 Khusus Membership</p>
+                </div>
+            </div>
+            <div class="flex w-full md:w-auto gap-2">
+                <div class="relative w-full md:w-64">
+                    <input type="password" id="masterCodeInput" placeholder="Masukkan Kode Master..." 
+                           class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all text-white text-sm">
+                    <button onmousedown="event.preventDefault(); togglePassword('masterCodeInput', 'masterEye')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition">
+                        <i class="fas fa-eye text-sm" id="masterEye"></i>
+                    </button>
+                </div>
+                <button onclick="checkMasterCode()" class="bg-rose-600 hover:bg-rose-700 px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-rose-900/20 active:scale-95 text-sm whitespace-nowrap">Aktivasi Master</button>
+            </div>
+        </div>
+    </section>
+
+    <main id="showGrid" class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Konten diisi otomatis -->
+    </main>
+
+    <!-- Modal Panduan -->
+    <div id="guideModal" class="modal">
+        <div class="glass-card p-8 rounded-[2rem] w-full max-w-lg relative shadow-2xl border-rose-500/30">
+            <button onclick="toggleGuide()" class="absolute top-6 right-6 text-slate-400 hover:text-white transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3">
+                    <i class="fas fa-book-open text-2xl text-rose-500"></i>
+                </div>
+                <h2 class="text-2xl font-bold gradient-text">Cara Akses Replay</h2>
+            </div>
+            
+            <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
+                <div class="bg-slate-900/40 p-4 rounded-2xl border border-white/5">
+                    <p class="text-white font-bold flex items-center gap-2 mb-1">
+                        <i class="fas fa-crown text-rose-500"></i> Akses Master
+                    </p>
+                    <p>Membuka <strong>seluruh show</strong> secara permanen (Khusus membership).</p>
+                </div>
+                
+                <div class="bg-slate-900/40 p-4 rounded-2xl border border-white/5">
+                    <p class="text-white font-bold flex items-center gap-2 mb-1">
+                        <i class="fas fa-ticket-alt text-rose-500"></i> Akses Satuan
+                    </p>
+                    <p>Klik <strong>"Buka Kunci"</strong> pada show pilihan dan masukkan kode order Anda.</p>
+                </div>
+
+                <div class="bg-rose-500/10 p-4 rounded-xl border border-rose-500/20 text-center">
+                    <p class="text-xs italic text-rose-300">Dilarang menyebarkan kode akses. Pelanggaran berakibat pemblokiran akses permanen.</p>
+                </div>
+            </div>
+            
+            <button onclick="toggleGuide()" class="w-full mt-8 py-4 bg-rose-600 hover:bg-rose-700 rounded-2xl font-bold transition-all shadow-lg shadow-rose-900/20">
+                Lanjut
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Verifikasi Kode -->
+    <div id="accessModal" class="modal">
+        <div class="glass-card p-8 rounded-[2rem] w-full max-w-md relative shadow-2xl border-white/10">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-1 text-white">Verifikasi Sandi</h2>
+                <p id="modalShowTitle" class="text-rose-400 text-sm font-semibold"></p>
+            </div>
+            <div class="relative mb-6">
+                <input type="password" id="singleCodeInput" placeholder="Masukkan Kode Akses..." 
+                       class="w-full bg-slate-900 border border-slate-700 rounded-2xl pl-5 pr-20 py-4 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all text-white">
+                
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                    <button onmousedown="event.preventDefault(); clearInput('singleCodeInput')" class="text-slate-500 hover:text-rose-500 transition" title="Hapus">
+                        <i class="fas fa-backspace"></i>
+                    </button>
+                    <button onmousedown="event.preventDefault(); togglePassword('singleCodeInput', 'singleEye')" class="text-slate-500 hover:text-white transition" title="Lihat/Tutup">
+                        <i class="fas fa-eye" id="singleEye"></i>
+                    </button>
+                </div>
+            </div>
+            <button onclick="submitSingleCode()" class="w-full py-4 bg-rose-600 hover:bg-rose-700 rounded-2xl font-bold transition-all shadow-lg">
+                Buka Video Sekarang
+            </button>
+            <p id="errorMessage" class="text-rose-500 text-xs mt-4 hidden text-center font-bold">
+                <i class="fas fa-exclamation-triangle mr-1"></i> KODE SALAH!
+            </p>
+        </div>
+    </div>
+
+    <!-- Video Player Modal -->
+    <div id="videoModal" class="modal">
+        <div class="w-full max-w-5xl relative">
+            <button onclick="closeVideo()" class="absolute -top-12 right-0 text-white font-bold hover:text-rose-500 transition flex items-center gap-2">
+                <i class="fas fa-times-circle"></i> Tutup Replay
+            </button>
+            <div class="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+                <iframe id="youtubePlayer" class="w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MASTER_CODE = "Gr3Sh4n"; 
+
+        /** * DATA SHOW
+         * Bagian 'lineup' sekarang cukup diisi satu baris string dipisahkan koma.
+         * Contoh: "Member1, Member2, Member3"
+         */
+        const SHOW_DATA = [
+            {
+                id: 1,
+                title: "Cara Meminum Ramune",
+                type: "Reguler",
+                date: "2026-01-29",
+                displayDate: "29 JANUARI 2026",
+                code: "Gr3S",
+                youtubeId: "QOSUGbD5kAU",
+                customImage: "", 
+                lineup: "Anindya, Daisy, Danella, Delynn, Ella, Freya, Gendis, Gita, Greesel, Indah, Lia, Lulu, Muthe, Nachia, Oniel, Ribka"
+            },
+            {
+                id: 2,
+                title: "Pertaruhan Cinta",
+                type: "Reguler",
+                date: "2026-01-25",
+                displayDate: "25 JANUARI 2026",
+                code: "gr4c1a",
+                youtubeId: "T1fuPlhXCfw",
+                customImage: "",
+                lineup: "Christy, Fiony, Freya, Gita, Gracie, Greesel, Jessi, Lana, Lia, Marsha, Muthe, Olla"
+            },
+            {
+                id: 3,
+                title: "Sambil Menggandeng Erat Tanganku",
+                type: "STS (Senshuuraku)",
+                date: "2026-01-25",
+                displayDate: "25 JANUARI 2026",
+                code: "Gresh4n",
+                youtubeId: "3S7tWm4oMWw",
+                customImage: "",
+                lineup: "Alya, Amanda, Delynn, Elin, Ella, Fritzy, Lulu, Lyn, Marsha, Nala, Oline, Raisha"
+            },
+            {
+                id: 4,
+                title: "Pertaruhan Cinta",
+                type: "Reguler",
+                date: "2026-01-30",
+                displayDate: "30 JANUARI 2026",
+                code: "29Percin",
+                youtubeId: "e4PjVSDG62c",
+                customImage: "",
+                lineup: "Alya, Amanda, Cynthia, Elin, Fiony, Freya, Gendis, Kathrina, Lana, Lyn, Olla, Raisha"
+            },
+    {
+                id: 5,
+                title: "Sambil Menggandeng Erat Tanganku",
+                type: "Reguler",
+                date: "2026-01-31",
+                displayDate: "31 JANUARI 2026",
+                code: "31TwT",
+                youtubeId: "2sfqnNyKbJc",
+                customImage: "",
+                lineup: "Aralie, Cathy, Erine, Gracie, Kimmy, Lia, Lily, Lyn, Marsha, Nachia, Oline, Raisha"
+            }
+        ];
+
+        let activeId = null;
+        let unlockedIds = new Set();
+
+        window.onload = function() {
+            setTimeout(() => {
+                document.getElementById('guideModal').classList.add('active');
+            }, 500);
+            initStars();
+            drawStars();
+            renderCards();
+        };
+
+        function togglePassword(inputId, eyeId) {
+            const input = document.getElementById(inputId);
+            const eye = document.getElementById(eyeId);
+            if (input.type === "password") {
+                input.type = "text";
+                eye.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = "password";
+                eye.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function clearInput(inputId) {
+            document.getElementById(inputId).value = '';
+            document.getElementById(inputId).focus();
+        }
+
+        function toggleGuide() {
+            const guide = document.getElementById('guideModal');
+            guide.classList.toggle('active');
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('showGrid');
+            const sortedData = [...SHOW_DATA].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            grid.innerHTML = sortedData.map(show => {
+                const imageUrl = show.customImage && show.customImage.trim() !== "" 
+                    ? show.customImage 
+                    : `https://img.youtube.com/vi/${show.youtubeId}/maxresdefault.jpg`;
+
+                // Logic baru: Jika lineup adalah string, bersihkan spasi tambahan setelah koma
+                const formattedLineup = typeof show.lineup === 'string' 
+                    ? show.lineup.split(',').map(name => name.trim()).join(', ') 
+                    : show.lineup.join(', ');
+
+                return `
+                <div class="glass-card rounded-3xl overflow-hidden flex flex-col group fade-in" id="card-${show.id}">
+                    <div class="h-52 bg-slate-900 relative overflow-hidden">
+                        <img src="${imageUrl}" 
+                             onerror="this.src='https://img.youtube.com/vi/${show.youtubeId}/0.jpg'"
+                             class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition duration-700">
+                        
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="lock-icon-container bg-black/40 p-4 rounded-full backdrop-blur-md border border-white/10">
+                                <i class="fas fa-lock text-2xl text-white/80" id="lock-icon-${show.id}"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <h3 class="text-xl font-bold group-hover:text-rose-400 transition-colors text-white">${show.title}</h3>
+                        
+                        <div class="mt-4 space-y-3 p-4 bg-slate-900/60 rounded-xl border border-white/5">
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1 tracking-tighter">⚙️ Kriteria Show</p>
+                                <p class="text-xs text-rose-400 font-semibold">${show.type}</p>
+                            </div>
+                            
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1 tracking-tighter">📆 Tanggal Show</p>
+                                <p class="text-xs text-slate-300">${show.displayDate}</p>
+                            </div>
+
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1 tracking-tighter">👥 Line Up Performance</p>
+                                <p class="text-xs text-slate-300 leading-relaxed line-clamp-3 italic">${formattedLineup}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <button onclick="openAccessModal(${show.id})" id="btn-${show.id}" class="w-full py-4 bg-slate-800 hover:bg-rose-600 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 active:scale-95 text-sm">
+                            <i class="fas fa-ticket-alt"></i> Buka Kunci
+                        </button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function checkMasterCode() {
+            const input = document.getElementById('masterCodeInput');
+            if (input.value === MASTER_CODE) {
+                SHOW_DATA.forEach(show => unlockShow(show.id));
+                input.value = '';
+                alertBox("MASTER ACCESS ACTIVE!", "success");
+            } else {
+                alertBox("KODE MASTER SALAH!", "error");
+            }
+        }
+
+        function openAccessModal(id) {
+            if (unlockedIds.has(id)) {
+                playVideo(id);
+                return;
+            }
+            activeId = id;
+            const show = SHOW_DATA.find(s => s.id === id);
+            document.getElementById('modalShowTitle').innerText = show.title;
+            document.getElementById('accessModal').classList.add('active');
+            
+            const input = document.getElementById('singleCodeInput');
+            input.value = '';
+            input.type = 'password';
+            document.getElementById('singleEye').classList.replace('fa-eye-slash', 'fa-eye');
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        function submitSingleCode() {
+            const code = document.getElementById('singleCodeInput').value;
+            const show = SHOW_DATA.find(s => s.id === activeId);
+            
+            if (code === show.code || code === MASTER_CODE) {
+                unlockShow(activeId);
+                closeModal();
+                playVideo(activeId);
+            } else {
+                const err = document.getElementById('errorMessage');
+                err.classList.remove('hidden');
+                err.parentElement.classList.add('shake');
+                setTimeout(() => err.parentElement.classList.remove('shake'), 500);
+            }
+        }
+
+        function unlockShow(id) {
+            unlockedIds.add(id);
+            const btn = document.getElementById(`btn-${id}`);
+            const lockIcon = document.getElementById(`lock-icon-${id}`);
+            if (btn) {
+                btn.classList.remove('bg-slate-800');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                btn.innerHTML = `<i class="fas fa-play"></i> Tonton`;
+            }
+            if (lockIcon) {
+                lockIcon.classList.replace('fa-lock', 'fa-unlock');
+                lockIcon.classList.add('text-green-500');
+            }
+        }
+
+        function playVideo(id) {
+            const show = SHOW_DATA.find(s => s.id === id);
+            const player = document.getElementById('youtubePlayer');
+            player.src = `https://www.youtube.com/embed/${show.youtubeId}?autoplay=1&rel=0`;
+            document.getElementById('videoModal').classList.add('active');
+        }
+
+        function closeVideo() {
+            document.getElementById('youtubePlayer').src = "";
+            document.getElementById('videoModal').classList.remove('active');
+        }
+
+        function closeModal() {
+            document.getElementById('accessModal').classList.remove('active');
+        }
+
+        function alertBox(msg, type) {
+            const div = document.createElement('div');
+            div.className = `fixed top-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl font-bold z-[200] transition-all duration-500 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white shadow-2xl text-sm`;
+            div.innerText = msg;
+            document.body.appendChild(div);
+            setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 3000);
+        }
+
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function initStars() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = Array.from({length: 150}, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.5 + 0.1
+            }));
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                ctx.fill();
+                s.y -= s.speed;
+                if(s.y < 0) s.y = canvas.height;
+            });
+            requestAnimationFrame(drawStars);
+        }
+        window.addEventListener('resize', initStars);
+    </script>
+</body>
+</html>
