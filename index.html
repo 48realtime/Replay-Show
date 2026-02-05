@@ -104,11 +104,138 @@
             transform: scale(1.1) rotate(15deg);
             border-color: #fb7185;
         }
+
+        /* Video container settings */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            background: #000;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        @media (orientation: portrait) {
+            .video-wrapper {
+                aspect-ratio: 9/16; /* Menyesuaikan jika konten portrait */
+            }
+        }
+
+        #youtubePlayer {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Overlay to block YouTube logos/links */
+        .yt-blocker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px; /* Menutupi bagian atas (logo, share, watch later) */
+            z-index: 10;
+            background: transparent;
+        }
+        
+        .yt-blocker-bottom {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100px;
+            height: 50px; /* Menutupi logo YouTube di kanan bawah */
+            z-index: 10;
+            background: transparent;
+        }
+
+        /* Quality Gear Button */
+        .quality-settings {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quality-settings:hover {
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            transform: rotate(45deg);
+        }
+
+        .quality-menu {
+            position: absolute;
+            top: 50px;
+            right: 15px;
+            z-index: 25;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 100px;
+        }
+
+        .quality-menu.active { display: flex; }
+
+        .quality-option {
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #cbd5e1;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .quality-option:hover {
+            background: rgba(225, 29, 72, 0.2);
+            color: #fff;
+        }
+
+        .quality-option.selected {
+            color: #fb7185;
+            font-weight: bold;
+        }
+
+        .orientation-warning {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(225, 29, 72, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 150;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
     <canvas id="starCanvas"></canvas>
+
+    <!-- Notifikasi Rotasi Layar -->
+    <div id="rotationWarning" class="orientation-warning">
+        <i class="fas fa-mobile-alt animate-bounce"></i> NONAKTIFKAN KUNCI ROTASI UNTUK MODE LAYAR PENUH (LANDSCAPE)
+    </div>
 
     <!-- Ikon Panduan -->
     <button onclick="toggleGuide()" class="guide-btn group shadow-lg" title="Lihat Panduan">
@@ -125,6 +252,7 @@
         </div>
     </header>
 
+    <!-- Master Access Section -->
     <section class="max-w-4xl mx-auto px-4 mb-12">
         <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 justify-between border-rose-500/20">
             <div class="flex items-center gap-4">
@@ -149,45 +277,89 @@
         </div>
     </section>
 
+    <!-- Main Content Grid -->
     <main id="showGrid" class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- Konten diisi otomatis -->
+        <!-- Konten diisi otomatis oleh JavaScript -->
     </main>
 
     <!-- Modal Panduan -->
     <div id="guideModal" class="modal">
-        <div class="glass-card p-8 rounded-[2rem] w-full max-w-lg relative shadow-2xl border-rose-500/30">
+        <div class="glass-card p-8 rounded-[2rem] w-full max-w-lg relative shadow-2xl border-rose-500/30 overflow-y-auto max-h-[90vh]">
             <button onclick="toggleGuide()" class="absolute top-6 right-6 text-slate-400 hover:text-white transition">
                 <i class="fas fa-times text-xl"></i>
             </button>
-            <div class="text-center mb-8">
+            <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3">
                     <i class="fas fa-book-open text-2xl text-rose-500"></i>
                 </div>
-                <h2 class="text-2xl font-bold gradient-text">Cara Akses Replay</h2>
+                <h2 class="text-2xl font-bold gradient-text">Panduan Penggunaan</h2>
+                <p class="text-slate-400 text-xs mt-1">Ikuti langkah di bawah untuk mengakses video</p>
             </div>
             
-            <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
-                <div class="bg-slate-900/40 p-4 rounded-2xl border border-white/5">
-                    <p class="text-white font-bold flex items-center gap-2 mb-1">
-                        <i class="fas fa-crown text-rose-500"></i> Akses Master
-                    </p>
-                    <p>Membuka <strong>seluruh show</strong> secara permanen (Khusus membership).</p>
+            <div class="space-y-6 text-sm text-slate-300 leading-relaxed">
+                <!-- Panduan Akses Master -->
+                <div class="bg-slate-900/40 p-5 rounded-2xl border border-white/5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500 font-bold text-xs shrink-0">1</div>
+                        <p class="text-white font-bold">Akses Master (Seluruh Show)</p>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">Gunakan kolom <strong>"Akses Master"</strong> di bagian paling atas halaman. Masukkan kode dan klik <strong>Aktivasi Master</strong> untuk membuka seluruh arsip video secara instan.</p>
+                    
+                    <!-- Ilustrasi Input Master (Mirip Aslinya) -->
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5 flex gap-2 scale-90 sm:scale-100">
+                        <div class="relative flex-grow">
+                            <div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-[10px] text-slate-500 flex items-center justify-between">
+                                <span>Masukkan Kode Master...</span>
+                                <i class="fas fa-eye"></i>
+                            </div>
+                        </div>
+                        <div class="bg-rose-600 rounded-lg px-4 py-2 text-[10px] font-bold text-white flex items-center shadow-lg shadow-rose-900/20">
+                            Aktivasi Master
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="bg-slate-900/40 p-4 rounded-2xl border border-white/5">
-                    <p class="text-white font-bold flex items-center gap-2 mb-1">
-                        <i class="fas fa-ticket-alt text-rose-500"></i> Akses Satuan
-                    </p>
-                    <p>Klik <strong>"Buka Kunci"</strong> pada show pilihan dan masukkan kode order Anda.</p>
+                <!-- Panduan Akses Satuan -->
+                <div class="bg-slate-900/40 p-5 rounded-2xl border border-white/5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500 font-bold text-xs shrink-0">2</div>
+                        <p class="text-white font-bold">Akses Satuan (Per Video)</p>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">Klik tombol <strong>"Buka Kunci"</strong> pada salah satu kartu video. Sebuah jendela verifikasi akan muncul untuk memasukkan kode akses khusus video tersebut.</p>
+                    
+                    <!-- Ilustrasi Tombol Buka Kunci (Mirip Aslinya) -->
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="bg-slate-800 border border-white/5 rounded-xl px-8 py-3 w-full text-xs font-bold text-white flex items-center justify-center gap-3 shadow-md">
+                            <i class="fas fa-ticket-alt text-rose-500"></i> Buka Kunci
+                        </div>
+                        <i class="fas fa-chevron-down text-slate-600 animate-bounce"></i>
+                        <div class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-[10px] text-slate-500 flex items-center justify-between">
+                            <span>Masukkan Kode Akses...</span>
+                            <div class="flex gap-2">
+                                <i class="fas fa-backspace"></i>
+                                <i class="fas fa-eye"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-rose-500/10 p-4 rounded-xl border border-rose-500/20 text-center">
-                    <p class="text-xs italic text-rose-300">Dilarang menyebarkan kode akses. Pelanggaran berakibat pemblokiran akses permanen.</p>
+                <!-- Info Larangan & Peringatan -->
+                <div class="bg-rose-500/10 p-4 rounded-xl border border-rose-500/20 text-center space-y-2">
+                    <p class="text-[11px] font-semibold text-rose-300 uppercase tracking-wider">
+                        <i class="fas fa-user-shield mr-1"></i> Keamanan & Ketentuan Akses
+                    </p>
+                    <div class="space-y-1">
+                        <p class="text-[10px] text-white font-bold italic">
+                            <i class="fas fa-font mr-1"></i> PERHATIKAN BESAR & KECIL HURUF!
+                        </p>
+                        <p class="text-[10px] text-rose-300/80 leading-tight">Pastikan kode yang Anda masukkan persis sama dengan yang diberikan oleh admin (Case Sensitive).</p>
+                        <p class="text-[10px] italic text-rose-300/80">Kode bersifat pribadi. Berbagi kode dapat mengakibatkan pencabutan hak akses secara otomatis.</p>
+                    </div>
                 </div>
             </div>
             
-            <button onclick="toggleGuide()" class="w-full mt-8 py-4 bg-rose-600 hover:bg-rose-700 rounded-2xl font-bold transition-all shadow-lg shadow-rose-900/20">
-                Lanjut
+            <button onclick="toggleGuide()" class="w-full mt-6 py-4 bg-rose-600 hover:bg-rose-700 rounded-2xl font-bold transition-all shadow-lg shadow-rose-900/20">
+                Lanjut ke Replay
             </button>
         </div>
     </div>
@@ -226,12 +398,36 @@
 
     <!-- Video Player Modal -->
     <div id="videoModal" class="modal">
-        <div class="w-full max-w-5xl relative">
-            <button onclick="closeVideo()" class="absolute -top-12 right-0 text-white font-bold hover:text-rose-500 transition flex items-center gap-2">
-                <i class="fas fa-times-circle"></i> Tutup Replay
+        <div class="w-full max-w-5xl relative flex flex-col items-center">
+            <button onclick="closeVideo()" class="self-end mb-4 text-white font-bold hover:text-rose-500 transition flex items-center gap-2">
+                <i class="fas fa-times-circle text-xl"></i> Tutup Replay
             </button>
-            <div class="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                <iframe id="youtubePlayer" class="w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            
+            <div class="video-wrapper shadow-2xl border border-white/10">
+                <!-- Quality Gear Icon -->
+                <div class="quality-settings" onclick="toggleQualityMenu()">
+                    <i class="fas fa-cog"></i>
+                </div>
+
+                <!-- Quality Dropdown -->
+                <div id="qualityMenu" class="quality-menu">
+                    <button class="quality-option" onclick="setQuality('hd1080')">1080p (HD)</button>
+                    <button class="quality-option" onclick="setQuality('hd720')">720p (HD)</button>
+                    <button class="quality-option" onclick="setQuality('large')">480p</button>
+                    <button class="quality-option" onclick="setQuality('medium')">360p</button>
+                    <button class="quality-option selected" onclick="setQuality('default')">Otomatis</button>
+                </div>
+
+                <!-- Protective Overlays -->
+                <div class="yt-blocker"></div>
+                <div class="yt-blocker-bottom"></div>
+
+                <iframe id="youtubePlayer" 
+                        src="" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                </iframe>
             </div>
         </div>
     </div>
@@ -239,9 +435,7 @@
     <script>
         const MASTER_CODE = "Gr3Sh4n"; 
 
-        /** * DATA SHOW
-         * Bagian 'lineup' sekarang cukup diisi satu baris string dipisahkan koma.
-         * Contoh: "Member1, Member2, Member3"
+        /** * DATA SHOW ARCHIVES
          */
         const SHOW_DATA = [
             {
@@ -288,7 +482,7 @@
                 customImage: "",
                 lineup: "Alya, Amanda, Cynthia, Elin, Fiony, Freya, Gendis, Kathrina, Lana, Lyn, Olla, Raisha"
             },
-    {
+            {
                 id: 5,
                 title: "Sambil Menggandeng Erat Tanganku",
                 type: "Reguler",
@@ -299,26 +493,28 @@
                 customImage: "",
                 lineup: "Aralie, Cathy, Erine, Gracie, Kimmy, Lia, Lily, Lyn, Marsha, Nachia, Oline, Raisha"
             },
-    {
+                {
                 id: 6,
-                title: "Cara Meminum Ramune",
+                title: "Pertaruhan Cinta",
                 type: "Reguler",
-                date: "2026-02-01",
-                displayDate: "01 FEBRUARI 2026",
-                code: "r4mune",
-                youtubeId: "UHwCZ2jb5lw",
+                date: "2026-02-05",
+                displayDate: "05 FEBRUARI 2026",
+                code: "Feb5",
+                youtubeId: "ABusnV_uXfY",
                 customImage: "",
-                lineup: "Chelsea, Christy, Danella, Delynn, Erine, Fritzy, Gita, Gracie, Jessi, Levi, Lily, Michie, Nayla, Oline, Oniel, Trisha" 
-    }
+                lineup: "Anindya, Christy, Daisy, Danella, Elin, Freya, Gracie, Indah, Lia, Lulu, Marsha, Michie"
+            }
         ];
 
         let activeId = null;
         let unlockedIds = new Set();
+        let currentQuality = 'default';
 
         window.onload = function() {
             setTimeout(() => {
                 document.getElementById('guideModal').classList.add('active');
             }, 500);
+            
             initStars();
             drawStars();
             renderCards();
@@ -355,7 +551,6 @@
                     ? show.customImage 
                     : `https://img.youtube.com/vi/${show.youtubeId}/maxresdefault.jpg`;
 
-                // Logic baru: Jika lineup adalah string, bersihkan spasi tambahan setelah koma
                 const formattedLineup = typeof show.lineup === 'string' 
                     ? show.lineup.split(',').map(name => name.trim()).join(', ') 
                     : show.lineup.join(', ');
@@ -365,7 +560,8 @@
                     <div class="h-52 bg-slate-900 relative overflow-hidden">
                         <img src="${imageUrl}" 
                              onerror="this.src='https://img.youtube.com/vi/${show.youtubeId}/0.jpg'"
-                             class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition duration-700">
+                             class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition duration-700"
+                             alt="${show.title}">
                         
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="lock-icon-container bg-black/40 p-4 rounded-full backdrop-blur-md border border-white/10">
@@ -410,6 +606,9 @@
                 alertBox("MASTER ACCESS ACTIVE!", "success");
             } else {
                 alertBox("KODE MASTER SALAH!", "error");
+                const parent = input.parentElement.parentElement;
+                parent.classList.add('shake');
+                setTimeout(() => parent.classList.remove('shake'), 500);
             }
         }
 
@@ -431,7 +630,8 @@
         }
 
         function submitSingleCode() {
-            const code = document.getElementById('singleCodeInput').value;
+            const codeInput = document.getElementById('singleCodeInput');
+            const code = codeInput.value;
             const show = SHOW_DATA.find(s => s.id === activeId);
             
             if (code === show.code || code === MASTER_CODE) {
@@ -462,19 +662,55 @@
         }
 
         function playVideo(id) {
+            activeId = id;
             const show = SHOW_DATA.find(s => s.id === id);
             const player = document.getElementById('youtubePlayer');
-            player.src = `https://www.youtube.com/embed/${show.youtubeId}?autoplay=1&rel=0`;
+            
+            // Build URL with quality and restricted branding
+            // Note: vq is a suggestion for quality. Modestbranding hides some logos.
+            const videoUrl = `https://www.youtube.com/embed/${show.youtubeId}?autoplay=1&rel=0&modestbranding=1&vq=${currentQuality}&showinfo=0&iv_load_policy=3`;
+            
+            player.src = videoUrl;
             document.getElementById('videoModal').classList.add('active');
+            
+            // Show orientation warning
+            const warn = document.getElementById('rotationWarning');
+            warn.style.display = 'flex';
+            setTimeout(() => warn.style.display = 'none', 5000);
         }
 
         function closeVideo() {
             document.getElementById('youtubePlayer').src = "";
             document.getElementById('videoModal').classList.remove('active');
+            document.getElementById('qualityMenu').classList.remove('active');
         }
 
         function closeModal() {
             document.getElementById('accessModal').classList.remove('active');
+        }
+
+        // Quality Settings Logic
+        function toggleQualityMenu() {
+            document.getElementById('qualityMenu').classList.toggle('active');
+        }
+
+        function setQuality(quality) {
+            currentQuality = quality;
+            
+            // Update UI
+            const options = document.querySelectorAll('.quality-option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            // Reload video with new quality param
+            if (activeId) {
+                const show = SHOW_DATA.find(s => s.id === activeId);
+                const player = document.getElementById('youtubePlayer');
+                player.src = `https://www.youtube.com/embed/${show.youtubeId}?autoplay=1&rel=0&modestbranding=1&vq=${quality}&showinfo=0&iv_load_policy=3`;
+            }
+            
+            document.getElementById('qualityMenu').classList.remove('active');
+            alertBox(`Kualitas diubah ke: ${quality === 'default' ? 'Otomatis' : quality}`, "success");
         }
 
         function alertBox(msg, type) {
@@ -482,12 +718,17 @@
             div.className = `fixed top-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl font-bold z-[200] transition-all duration-500 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white shadow-2xl text-sm`;
             div.innerText = msg;
             document.body.appendChild(div);
-            setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 3000);
+            setTimeout(() => { 
+                div.style.opacity = '0'; 
+                div.style.transform = 'translate(-50%, -20px)';
+                setTimeout(() => div.remove(), 500); 
+            }, 3000);
         }
 
         const canvas = document.getElementById('starCanvas');
         const ctx = canvas.getContext('2d');
         let stars = [];
+        
         function initStars() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -495,21 +736,25 @@
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
                 size: Math.random() * 2,
-                speed: Math.random() * 0.5 + 0.1
+                speed: Math.random() * 0.5 + 0.1,
+                opacity: Math.random()
             }));
         }
+
         function drawStars() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
             stars.forEach(s => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
                 ctx.fill();
+                
                 s.y -= s.speed;
                 if(s.y < 0) s.y = canvas.height;
             });
             requestAnimationFrame(drawStars);
         }
+        
         window.addEventListener('resize', initStars);
     </script>
 </body>
